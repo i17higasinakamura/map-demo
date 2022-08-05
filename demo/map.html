@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="layout.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
+        integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
+        crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
+        integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
+        crossorigin=""></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.js"
+        integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic&display=swap" rel="stylesheet">
+    <title>{% block title %}title{% endblock %}</title>
+</head>
+
+<body>
+    <div class="header_container">
+        <nav class="header_item">
+            <div class="menu">
+                <ul>
+                    <div class="btn">
+                        <li><a href="./map.html">Map</a></li>
+                    </div>
+                    <div class="btn">
+                        <li>工事中</li>
+                    </div>
+                    <div class="btn">
+                        <li>工事中</li>
+                    </div>
+                </ul>
+            </div>
+        </nav>
+    </div>
+    <div class="main_container">
+        <div class="main_context">
+            <p>地図クリックで緯度経度取得</p>
+            <p>周辺500mのお店を検索</p>
+        </div>
+        <div class="main_context">
+            <label for="address">住所で大まかに絞込</label>
+            <input type="text" id="address" name="address" size="30">
+            <input type="reset">
+            <div class="submit-btn">
+                <button onclick="getLatLon()">絞込</button>
+            </div>
+        </div>
+        <div class="main_context">
+            <label for="lat">緯度</label>
+            <input type="text" id="lat" name="lat">
+            <label for="lon">経度</label>
+            <input type="text" id="lon" name="lon">
+            <input type="reset">
+            <!--<input type="submit" value="お店検索">-->
+            <div class="submit-btn">
+                <button onclick="getInfo()">お店検索</button>
+            </div>
+        </div>
+
+        <div id="map"></div>
+        <a href="http://webservice.recruit.co.jp/"><img src="http://webservice.recruit.co.jp/banner/hotpepper-s.gif"
+                alt="ホットペッパー Webサービス" width="135" height="17" border="0" title="ホットペッパー Webサービス"></a>
+        <script>
+            var map = L.map('map').setView([36.08251, 140.11071], 17);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+            //クリックイベント
+            map.on('click', function (e) {
+                //クリック位置経緯度取得
+                lat = e.latlng.lat;
+                lng = e.latlng.lng;
+                //経緯度表示
+
+                //alert("lat: " + lat + ", lng: " + lng);
+                setLatLon(lat, lng)
+            });
+
+            function getLatLon() {
+
+                let address = document.getElementById('address');
+                let appid = 'dj00aiZpPXdCZ1NCQTVtUXdiZiZzPWNvbnN1bWVyc2VjcmV0Jng9YmM-'
+
+                let url = `https://map.yahooapis.jp/geocode/V1/geoCoder?appid=${appid}&query=${encodeURI(address.value)}&output=json&results=1`
+
+                let lat = 0
+                let lon = 0
+                $.ajax({
+                    url: url,
+                    type: 'GET',
+                    dataType: 'jsonp',
+                    jsonpCallback: 'returnValue'
+                }).done(function (data) {
+                    geo = data.Feature[0].Geometry.Coordinates.split(',')
+                    lat = geo[0]
+                    lon = geo[1]
+                    console.log(lat, lon)
+                    setLatLon(lat, lon)
+                    //map.setView([lat, lon])
+                });
+            }
+            function returnValue(text) {
+                console.log(text)
+            }
+            function setLatLon(lat0, lon0) {
+                let lat = lat0
+                let lon = lon0
+                let latElement = document.getElementById('lat');
+                let lonElement = document.getElementById('lon');
+                latElement.value = lat
+                lonElement.value = lon
+            }
+            let markerList = []
+            function getInfo() {
+                let lat = document.getElementById('lat').value;
+                let lon = document.getElementById('lon').value;
+                console.log(lat, lon)
+
+                const key = '78b05aec4e50c70d'
+                const range = 2//500m
+                const format = 'jsonp'
+
+                const url = `https://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key=${key}&lat=${lat}&lng=${lon}&range=${range}&count=100&format=${format}&callback=returnValue`
+                console.log(url)
+
+                $.ajax({
+                    url: url,
+                    type: 'GET',
+                    dataType: 'jsonp',
+                    jsonpCallback: 'returnValue'
+                }).done(function (data) {
+                    console.log(data.results.shop)
+                    shopArray = data.results.shop
+                    for (let i = 0; i < markerList.length; i++) {
+                        map.removeLayer(markerList[i]);
+                    }
+
+                    //let popupMes = "<br><p>お気に入り</p><button onclick=favoriteInsert()>登録</button>"
+                    for (let i = 0; i < shopArray.length; i++) {
+                        console.log(shopArray[i])
+                        let lat = shopArray[i].lat
+                        let lng = shopArray[i].lng
+                        let shopName = shopArray[i].name
+                        let shopId = shopArray[i].id
+                        console.log(lat, lng)
+                        marker = L.marker([lat, lng]).bindPopup(`${shopName}<br><p>お気に入り</p><button onclick=favoriteInsert(${shopId})>登録</button>`).addTo(map)
+                        markerList.push(marker)
+
+                    }
+                }).fail(function (data) {
+                    console.log(data)
+                });
+
+            }
+
+        </script>
+
+    </div>
+</body>
+
+</html>
