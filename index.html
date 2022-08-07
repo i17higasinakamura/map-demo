@@ -28,23 +28,16 @@
                     <div class="btn">
                         <li><a href="./map.html">Map</a></li>
                     </div>
-                    <div class="btn">
-                        <li>工事中</li>
-                    </div>
-                    <div class="btn">
-                        <li>工事中</li>
-                    </div>
                 </ul>
             </div>
         </nav>
     </div>
     <div class="main_container">
         <div class="main_context">
-            <p>地図クリックで緯度経度取得</p>
-            <p>周辺500mのお店を検索</p>
+            <p>地図クリックで周辺500mのスポットを検索</p>
         </div>
         <div class="main_context">
-            <label for="address">住所で大まかに絞込</label>
+            <label for="address">住所で絞込</label>
             <input type="text" id="address" name="address" size="30">
             <input type="reset">
             <div class="submit-btn">
@@ -52,20 +45,38 @@
             </div>
         </div>
         <div class="main_context">
-            <label for="lat">緯度</label>
-            <input type="text" id="lat" name="lat">
-            <label for="lon">経度</label>
-            <input type="text" id="lon" name="lon">
+            <!--<label for="lat">緯度</label>-->
+            <input type="hidden" id="lat" name="lat">
+            <!--<label for="lon">経度</label>-->
+            <input type="hidden" id="lon" name="lon">
             <input type="reset">
             <!--<input type="submit" value="お店検索">-->
+            <div>
+                <input type="checkbox" id="restaurant" name="restaurant">
+                <label for="restaurant">食事</label>
+            </div>
+            <div>
+                <input type="checkbox" id="shopping" name="shopping">
+                <label for="shopping">買い物</label>
+            </div>
+            <div>
+                <input type="checkbox" id="entame" name="entame">
+                <label for="entame">レジャー</label>
+            </div>
             <div class="submit-btn">
-                <button onclick="getInfo()">お店検索</button>
+                <button onclick="getInfo()">検索</button>
             </div>
         </div>
 
         <div id="map"></div>
         <a href="http://webservice.recruit.co.jp/"><img src="http://webservice.recruit.co.jp/banner/hotpepper-s.gif"
                 alt="ホットペッパー Webサービス" width="135" height="17" border="0" title="ホットペッパー Webサービス"></a>
+
+        <!-- Begin Yahoo! JAPAN Web Services Attribution Snippet -->
+        <span style="margin:15px 15px 15px 15px"><a href="https://developer.yahoo.co.jp/sitemap/">Webサービス by Yahoo!
+                JAPAN</a></span>
+        <!-- End Yahoo! JAPAN Web Services Attribution Snippet -->
+
         <script>
             var map = L.map('map').setView([36.08251, 140.11071], 17);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -121,7 +132,51 @@
             function getInfo() {
                 let lat = document.getElementById('lat').value;
                 let lon = document.getElementById('lon').value;
+                let restaurant = document.querySelector('input[id="restaurant"]');
+                let shopping = document.querySelector('input[id="shopping"]');
+                let entame = document.querySelector('input[id="entame"]');
                 console.log(lat, lon)
+
+                for (let i = 0; i < markerList.length; i++) {
+                    map.removeLayer(markerList[i]);
+                }
+                if (restaurant.checked == true) {
+                    getRestaurant(lat, lon)
+                }
+                if (shopping.checked == true) {
+                    getOther(lat, lon, 'shopping')
+                }
+                if (entame.checked == true) {
+                    getOther(lat, lon, 'entame')
+                }
+
+            }
+            function getOther(lat, lon, v) {
+                let appid = 'dj00aiZpPXdCZ1NCQTVtUXdiZiZzPWNvbnN1bWVyc2VjcmV0Jng9YmM-'
+
+                let url = `https://map.yahooapis.jp/search/local/V1/localSearch?appid=${appid}&lat=${lat}&lon=${lon}&dist=0.5&output=json&&results=100&callback=returnValue`
+                if (v == 'shopping') {
+                    url += `&gc=02`
+                }
+                if (v == 'entame') {
+                    url += `&gc=03`
+                }
+                $.ajax({
+                    url: url,
+                    type: 'GET',
+                    dataType: 'jsonp',
+                    jsonpCallback: 'returnValue'
+                }).done(function (data) {
+                    console.log(data.YDF)
+                    shopArray = data.results.shop
+
+                })
+
+            }
+            function getRestaurant(lat, lon) {
+                //let lat = document.getElementById('lat').value;
+                //let lon = document.getElementById('lon').value;
+                //console.log(lat, lon)
 
                 const key = '78b05aec4e50c70d'
                 const range = 2//500m
@@ -138,9 +193,7 @@
                 }).done(function (data) {
                     console.log(data.results.shop)
                     shopArray = data.results.shop
-                    for (let i = 0; i < markerList.length; i++) {
-                        map.removeLayer(markerList[i]);
-                    }
+
 
                     //let popupMes = "<br><p>お気に入り</p><button onclick=favoriteInsert()>登録</button>"
                     for (let i = 0; i < shopArray.length; i++) {
@@ -149,8 +202,10 @@
                         let lng = shopArray[i].lng
                         let shopName = shopArray[i].name
                         let shopId = shopArray[i].id
+                        let shopURL = shopArray[i].urls.pc
+                        let shopPic = shopArray[i].photo.pc.m
                         console.log(lat, lng)
-                        marker = L.marker([lat, lng]).bindPopup(`${shopName}<br><p>お気に入り</p><button onclick=favoriteInsert(${shopId})>登録</button>`).addTo(map)
+                        marker = L.marker([lat, lng]).bindPopup(`${shopName}<br><img src="${shopPic}"><br><a href="${shopURL}">ホットペッパーページ</a><br>`).addTo(map)
                         markerList.push(marker)
 
                     }
