@@ -154,7 +154,7 @@
             function getOther(lat, lon, v) {
                 let appid = 'dj00aiZpPXdCZ1NCQTVtUXdiZiZzPWNvbnN1bWVyc2VjcmV0Jng9YmM-'
 
-                let url = `https://map.yahooapis.jp/search/local/V1/localSearch?appid=${appid}&lat=${lat}&lon=${lon}&dist=0.5&output=json&&results=100&callback=returnValue`
+                let url = `https://map.yahooapis.jp/search/local/V1/localSearch?appid=${appid}&lat=${lat}&lon=${lon}&dist=0.5&output=json&&results=50&callback=returnValue`
                 if (v == 'shopping') {
                     url += `&gc=02`
                 }
@@ -167,9 +167,21 @@
                     dataType: 'jsonp',
                     jsonpCallback: 'returnValue'
                 }).done(function (data) {
-                    console.log(data.YDF)
-                    shopArray = data.results.shop
+                    console.log(data.YDF.Feature)
+                    shopArray = data.YDF.Feature
+                    for (let i = 0; i < shopArray.length; i++) {
+                        console.log(shopArray[i])
+                        let geo = shopArray[i].Geometry.Coordinates.split(',')
+                        lat = geo[0]
+                        lon = geo[1]
+                        let shopName = shopArray[i].Name
+                        let shopURL = shopArray[i].Detail.PcUrl1
+                        let shopPic = shopArray[i].Detail.Image1
+                        console.log(lat, lng)
+                        marker = L.marker([lat, lon]).bindPopup(`${shopName}<br><img src="${shopPic}"><br><a href="${shopURL}">ホットペッパーページ</a><br>`).addTo(map)
+                        markerList.push(marker)
 
+                    }
                 })
 
             }
